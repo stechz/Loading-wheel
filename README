@@ -1,0 +1,9 @@
+Firefox has two loading wheels. Neat idea, maybe we could improve these points:
+* Pages that load fast show both and it's jarring.
+* Wheels like and behave very different right now.
+* No information about pages that have stalled loading.
+
+Plan:
+1) Create a live demo page showing off new animations and transitions
+2) Make a prototype addon with the changes
+3) Write a compelling blog post about what we did and why. Show common pageload scenarios.
