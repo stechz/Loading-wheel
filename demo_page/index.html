@@ -52,6 +52,10 @@ body {
 		top:189px;
 }
 
+#window:hover span {
+		background-color:#555555;
+}
+
 canvas {
 		background: transparent;
 		display:block;
@@ -70,63 +74,146 @@ canvas {
 </body>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
 <script type="text/javascript">
-var frame = 0;
-var frame_fast = 0;
-var frame_slow = 0;
-var max_frames = 36;
 
-var ctx;
 
-var connecting = new Image();
-var loading = new Image();
+var Spinner = function () {
+		var _max_frames = 36; // number of frames in each spinning animation
+		var _fade_length = 500; // length of fade between connecting and loading spinners, in ms
 
-var state = 0;
-// 0 = idle
-// 1 = connecting
-// 2 = loading
+		var _ctx; // canvas 2d drawing context, if available
+		var _frame; // frame number in current animation
+		var _connecting; // image of connecting sprite
+		var _loading; // image of loading sprite
+		var _state; // state of the animation
+								// 0 = idle
+								// 1 = connecting
+								// 2 = fading between connecting and loading
+								// 3 = loading
+		var _draw_interval = -1; // interval for drawing
+		var _state_timeout = -1; // timer for changing state
+		var _fade_beginning = 0; // when the fade was started last, in ms
 
-function draw() {
-		frame_fast = (frame_fast + 1) % max_frames;
-		if (frame_fast % 2 == 0) {
-				frame_slow = (frame_slow + 1) % max_frames;
+		var me = this;
+
+		this._init = function() {
+				_frame = 0;
+				_state = 0;
+				_connecting = new Image();
+				_loading = new Image();
+
+				_connecting.src = 'images/connecting_sprite.png';
+				_loading.src = 'images/loading_sprite.png';
 		}
 
-		ctx.clearRect(0,0,16,16);
+		this._advance_state = function() {
+				_state = _state + 1;
+				switch(_state) {
+						case 1:
+						// connecting
+								me._clear_draw_interval();
+								_draw_interval = setInterval(me._draw, 27);
 
-		switch(state) {
-				case 0:
-				//idle
-				break;
-				case 1:
-				//connecting
-						ctx.drawImage(connecting, frame_slow * 16, 0, 16, 16, 0, 0, 16, 16);
-				break;
-				case 2:
-				//loading
-						ctx.drawImage(loading, frame_fast * 16, 0, 16, 16, 0, 0, 16, 16);
+								me._clear_state_timeout();
+								_state_timeout = setTimeout(me._advance_state, 400);
+						case 2:
+						// fading
+								me._clear_state_timeout();
+								_state_timeout = setTimeout(me._advance_state, _fade_length);
+								me._clear_draw_interval();
+								_draw_interval = setInterval(me._draw, 27);
+
+								// remember when we started fading
+								var d = new Date();
+								_fade_beginning = d.getTime();
+						break;
+						case 3:
+						// loading
+								me._clear_state_timeout();
+								_state_timeout = setTimeout(me._advance_state, 2000);
+								me._clear_draw_interval();
+								_draw_interval = setInterval(me._draw, 27);
+						break;
+						case 4:
+						// end
+								_state = 0;
+								$("#window span").fadeIn();
+						break;
+				}
 		}
+
+		this._clear_draw_interval = function() {
+				if (_draw_interval != -1) {
+						clearInterval(_draw_interval);
+				}
+		}
+
+		this._clear_state_timeout = function() {
+				if (_state_timeout != -1) {
+						clearTimeout(_state_timeout);
+				}
+		}
+
+		// return the alpha value to be used on the fade right now
+		this._fade_alpha = function() {
+				if (_fade_length == 0)
+						return 0;
+				var d = new Date();
+				var current_time = d.getTime();
+				return Math.min((current_time - _fade_beginning) / _fade_length, 1.0);
+		}
+
+		this._draw = function() {
+				_frame = (_frame + 1) % _max_frames;
+
+				_ctx.clearRect(0,0,16,16);
+
+				switch(_state) {
+						case 0:
+						// idle
+						break;
+						case 1:
+						// connecting
+								_ctx.drawImage(_connecting, _frame * 16, 0, 16, 16, 0, 0, 16, 16);
+						break;
+						case 2:
+						// fading from connecting to loading
+								_ctx.drawImage(_connecting, _frame * 16, 0, 16, 16, 0, 0, 16, 16);
+								_ctx.globalAlpha = me._fade_alpha();
+								_ctx.drawImage(_loading, _frame * 16, 0, 16, 16, 0, 0, 16, 16);
+								_ctx.globalAlpha = 1.0;
+						break;
+						case 3:
+						// loading
+								_ctx.drawImage(_loading, _frame * 16, 0, 16, 16, 0, 0, 16, 16);
+						break;
+				}
+		}
+
+		this.start = function() {
+				var canvas = document.getElementById('canvas');
+				if (canvas.getContext) {
+						_ctx = canvas.getContext('2d');
+						_state = 0;
+						_frame = 28;
+						me._advance_state();
+				}
+		}
+
+		this._init();
 }
 
-$(function(){
-		connecting.src = 'images/connecting_sprite.png';
-		loading.src = 'images/loading_sprite.png';
 
-		var canvas = document.getElementById('canvas');
-		if (canvas.getContext) {
-				ctx = canvas.getContext('2d');
-				setInterval(draw, 27);
-		}
+
+
+
+
+$(function(){
+		var theSpinner = new Spinner();
+
 
 		$("#window").click(function(){
-				state = (state + 1) % 3;
-				if (state == 1) {
-						// if we just switched from idle to connecting, start the animation at the top
-						frame_slow = 28;
-				}
-				if (state == 2) {
-						// if we just switched from connecting to loading, sync the animations
-						frame_fast = frame_slow;
-				}
+				theSpinner.start();
+				$("#window span").fadeOut();
 		});
 
 });
