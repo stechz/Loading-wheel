@@ -107,10 +107,6 @@ function draw() {
 		}
 }
 
-function connect() {
-		frame_fast = frame_slow;
-}
-
 $(function(){
 		connecting.src = 'images/connecting_sprite.png';
 		loading.src = 'images/loading_sprite.png';
@@ -123,6 +119,10 @@ $(function(){
 
 		$("#window").click(function(){
 				state = (state + 1) % 3;
+				if (state == 1) {
+						// if we just switched from idle to connecting, start the animation at the top
+						frame_slow = 28;
+				}
 				if (state == 2) {
 						// if we just switched from connecting to loading, sync the animations
 						frame_fast = frame_slow;
