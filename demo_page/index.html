@@ -114,7 +114,8 @@ var Spinner = function () {
 								_draw_interval = setInterval(me._draw, 27);
 
 								me._clear_state_timeout();
-								_state_timeout = setTimeout(me._advance_state, 400);
+								_state_timeout = setTimeout(me._advance_state, 1500);
+						break;
 						case 2:
 						// fading
 								me._clear_state_timeout();
